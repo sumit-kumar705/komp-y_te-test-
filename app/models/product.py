@@ -38,7 +38,41 @@ class Product(db.Model):
     # Numeric price for safety (10 digits, 2 decimals)
     price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
 
-    stock: Mapped[int] = mapped_column(db.Integer, nullable=False, default=0, server_default="0")
+    stock: Mapped[int] = mapped_column(
+        db.Integer, nullable=False, default=0, server_default="0"
+    )
+
+    # Product images (JSON array of URLs)
+    images: Mapped[str | None] = mapped_column(db.Text, nullable=True)
+
+    # Main product image
+    main_image: Mapped[str | None] = mapped_column(db.String(500), nullable=True)
+
+    # Additional product details for health supplements
+    ingredients: Mapped[str | None] = mapped_column(db.Text, nullable=True)
+
+    benefits: Mapped[str | None] = mapped_column(db.Text, nullable=True)
+
+    nutrition_info: Mapped[str | None] = mapped_column(db.Text, nullable=True)
+
+    # Usage instructions
+    usage_instructions: Mapped[str | None] = mapped_column(db.Text, nullable=True)
+
+    # Product specifications
+    weight: Mapped[str | None] = mapped_column(db.String(100), nullable=True)
+
+    # Is product active/published?
+    is_active: Mapped[bool] = mapped_column(
+        db.Boolean, nullable=False, default=True, server_default="1"
+    )
+
+    # Featured product flag
+    is_featured: Mapped[bool] = mapped_column(
+        db.Boolean, nullable=False, default=False, server_default="0"
+    )
+
+    # SKU (Stock Keeping Unit)
+    sku: Mapped[str | None] = mapped_column(db.String(100), nullable=True, unique=True)
 
     category_id: Mapped[int | None] = mapped_column(
         db.Integer, db.ForeignKey("categories.id", ondelete="SET NULL"), nullable=True
@@ -49,14 +83,20 @@ class Product(db.Model):
         db.DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+        db.DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
     )
 
     # -------------------------
     # Relationships
     # -------------------------
     category = relationship("Category", back_populates="products", lazy="select")
-    cart_items = relationship("Cart", back_populates="product", cascade="all, delete-orphan")
+    cart_items = relationship(
+        "Cart", back_populates="product", cascade="all, delete-orphan"
+    )
+
     # -------------------------
     # Representation
     # -------------------------
@@ -78,6 +118,16 @@ class Product(db.Model):
             "price": float(self.price) if self.price is not None else None,
             "stock": self.stock,
             "category_id": self.category_id,
+            "main_image": self.main_image,
+            "images": self.images,
+            "ingredients": self.ingredients,
+            "benefits": self.benefits,
+            "nutrition_info": self.nutrition_info,
+            "usage_instructions": self.usage_instructions,
+            "weight": self.weight,
+            "is_active": self.is_active,
+            "is_featured": self.is_featured,
+            "sku": self.sku,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

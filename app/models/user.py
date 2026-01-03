@@ -24,14 +24,45 @@ class User(db.Model):
 
     id: Mapped[int] = mapped_column(db.Integer, primary_key=True)
     username: Mapped[str] = mapped_column(db.String(120), unique=False, nullable=False)
-    email: Mapped[str] = mapped_column(db.String(255), unique=True, nullable=False, index=True)
+    email: Mapped[str] = mapped_column(
+        db.String(255), unique=True, nullable=False, index=True
+    )
     password_hash: Mapped[str] = mapped_column(db.String(255), nullable=False)
+
+    # Contact information
+    phone: Mapped[str | None] = mapped_column(db.String(20), nullable=True)
+
+    # Address fields
+    address_line1: Mapped[str | None] = mapped_column(db.String(255), nullable=True)
+    address_line2: Mapped[str | None] = mapped_column(db.String(255), nullable=True)
+    city: Mapped[str | None] = mapped_column(db.String(100), nullable=True)
+    state: Mapped[str | None] = mapped_column(db.String(100), nullable=True)
+    postal_code: Mapped[str | None] = mapped_column(db.String(20), nullable=True)
+    country: Mapped[str | None] = mapped_column(db.String(100), nullable=True)
+
+    # User role (customer, admin)
+    role: Mapped[str] = mapped_column(
+        db.String(50), nullable=False, default="customer", server_default="customer"
+    )
+
+    # Account status
+    is_active: Mapped[bool] = mapped_column(
+        db.Boolean, nullable=False, default=True, server_default="1"
+    )
+
+    # Email verification
+    is_email_verified: Mapped[bool] = mapped_column(
+        db.Boolean, nullable=False, default=False, server_default="0"
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         db.DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+        db.DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
     )
 
     # Relationship to Cart items (one-to-many)
@@ -42,10 +73,7 @@ class User(db.Model):
         lazy="select",
     )
     orders: Mapped[List["Order"]] = relationship(
-        "Order",
-        back_populates="user",
-        cascade="all, delete-orphan",
-        lazy="select"
+        "Order", back_populates="user", cascade="all, delete-orphan", lazy="select"
     )
 
     def __repr__(self) -> str:
@@ -72,7 +100,9 @@ class User(db.Model):
         return bcrypt.check_password_hash(self.password_hash, raw_password)
 
     # Serialization
-    def to_dict(self, include_relationships: bool = False, exclude: Optional[set] = None) -> Dict[str, Any]:
+    def to_dict(
+        self, include_relationships: bool = False, exclude: Optional[set] = None
+    ) -> Dict[str, Any]:
         exclude = set(exclude or set())
         exclude.add("password_hash")
 
@@ -90,6 +120,9 @@ class User(db.Model):
 
         if include_relationships:
             if hasattr(self, "cart_items"):
-                data["cart_items"] = [ci.to_dict(include_relationships=False) for ci in getattr(self, "cart_items", [])]
+                data["cart_items"] = [
+                    ci.to_dict(include_relationships=False)
+                    for ci in getattr(self, "cart_items", [])
+                ]
 
         return data

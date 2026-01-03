@@ -29,16 +29,45 @@ class OrderStatus(str, enum.Enum):
 
 class Order(db.Model):
     __tablename__ = "orders"
-    __table_args__ = (
-        db.Index("ix_orders_user_id", "user_id"),
-    )
+    __table_args__ = (db.Index("ix_orders_user_id", "user_id"),)
 
     id: Mapped[int] = mapped_column(db.Integer, primary_key=True)
 
-    user_id: Mapped[int | None] = mapped_column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_id: Mapped[int | None] = mapped_column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     # Use Numeric for currency: precision 12, scale 2 (support up to ~999,999,999.99)
     total_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+
+    # Shipping information
+    shipping_address_line1: Mapped[str | None] = mapped_column(
+        db.String(255), nullable=True
+    )
+    shipping_address_line2: Mapped[str | None] = mapped_column(
+        db.String(255), nullable=True
+    )
+    shipping_city: Mapped[str | None] = mapped_column(db.String(100), nullable=True)
+    shipping_state: Mapped[str | None] = mapped_column(db.String(100), nullable=True)
+    shipping_postal_code: Mapped[str | None] = mapped_column(
+        db.String(20), nullable=True
+    )
+    shipping_country: Mapped[str | None] = mapped_column(db.String(100), nullable=True)
+
+    # Contact information
+    customer_name: Mapped[str | None] = mapped_column(db.String(120), nullable=True)
+    customer_email: Mapped[str | None] = mapped_column(db.String(255), nullable=True)
+    customer_phone: Mapped[str | None] = mapped_column(db.String(20), nullable=True)
+
+    # Tracking information
+    tracking_number: Mapped[str | None] = mapped_column(db.String(100), nullable=True)
+    carrier: Mapped[str | None] = mapped_column(db.String(100), nullable=True)
+
+    # Order notes
+    notes: Mapped[str | None] = mapped_column(db.Text, nullable=True)
 
     # Use a DB enum when possible; SQLAlchemy will create a CHECK/ENUM depending on backend
     status: Mapped[OrderStatus] = mapped_column(
@@ -51,7 +80,10 @@ class Order(db.Model):
         db.DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+        db.DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
     )
 
     # Relationships
@@ -76,7 +108,9 @@ class Order(db.Model):
         self.status = new_status
 
     # Serialization
-    def to_dict(self, include_items: bool = False, include_user: bool = False) -> Dict[str, Any]:
+    def to_dict(
+        self, include_items: bool = False, include_user: bool = False
+    ) -> Dict[str, Any]:
         """
         Serialize the order.
         - include_items: include order_items (one level); may be heavy if many items.
@@ -85,27 +119,62 @@ class Order(db.Model):
         data: Dict[str, Any] = {
             "id": self.id,
             "user_id": self.user_id,
-            "total_amount": float(self.total_amount) if self.total_amount is not None else None,
-            "status": self.status.value if isinstance(self.status, enum.Enum) else str(self.status),
-            "created_at": self.created_at.isoformat() if isinstance(self.created_at, datetime) else None,
-            "updated_at": self.updated_at.isoformat() if isinstance(self.updated_at, datetime) else None,
+            "total_amount": (
+                float(self.total_amount) if self.total_amount is not None else None
+            ),
+            "status": (
+                self.status.value
+                if isinstance(self.status, enum.Enum)
+                else str(self.status)
+            ),
+            "shipping_address_line1": self.shipping_address_line1,
+            "shipping_address_line2": self.shipping_address_line2,
+            "shipping_city": self.shipping_city,
+            "shipping_state": self.shipping_state,
+            "shipping_postal_code": self.shipping_postal_code,
+            "shipping_country": self.shipping_country,
+            "customer_name": self.customer_name,
+            "customer_email": self.customer_email,
+            "customer_phone": self.customer_phone,
+            "tracking_number": self.tracking_number,
+            "carrier": self.carrier,
+            "notes": self.notes,
+            "created_at": (
+                self.created_at.isoformat()
+                if isinstance(self.created_at, datetime)
+                else None
+            ),
+            "updated_at": (
+                self.updated_at.isoformat()
+                if isinstance(self.updated_at, datetime)
+                else None
+            ),
         }
 
         if include_items:
             items = getattr(self, "order_items", []) or []
             data["order_items"] = [
-                item.to_dict(include_product=True) if hasattr(item, "to_dict") else {"id": getattr(item, "id", None)}
+                (
+                    item.to_dict(include_product=True)
+                    if hasattr(item, "to_dict")
+                    else {"id": getattr(item, "id", None)}
+                )
                 for item in items
             ]
 
         if include_user and hasattr(self, "user") and self.user is not None:
-            data["user"] = {"id": self.user.id, "username": getattr(self.user, "username", None)}
- 
+            data["user"] = {
+                "id": self.user.id,
+                "username": getattr(self.user, "username", None),
+            }
+
         return data
+
 
 # ==========================================
 # PASTE THIS AT THE BOTTOM OF app/models/order.py
 # ==========================================
+
 
 class OrderItem(db.Model):
     __tablename__ = "order_items"
@@ -118,20 +187,16 @@ class OrderItem(db.Model):
 
     # Link to the Order
     order_id: Mapped[int] = mapped_column(
-        db.Integer, 
-        db.ForeignKey("orders.id", ondelete="CASCADE"), 
-        nullable=False
+        db.Integer, db.ForeignKey("orders.id", ondelete="CASCADE"), nullable=False
     )
 
     # Link to the Product
     product_id: Mapped[int | None] = mapped_column(
-        db.Integer, 
-        db.ForeignKey("products.id", ondelete="SET NULL"), 
-        nullable=True
+        db.Integer, db.ForeignKey("products.id", ondelete="SET NULL"), nullable=True
     )
 
     quantity: Mapped[int] = mapped_column(db.Integer, default=1, nullable=False)
-    
+
     # Store price at moment of purchase (so it doesn't change if product price changes later)
     price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
 
@@ -148,9 +213,9 @@ class OrderItem(db.Model):
             "quantity": self.quantity,
             "price": float(self.price) if self.price is not None else 0.0,
         }
-        
+
         if include_product and self.product:
             # Assumes Product model has a to_dict method
             data["product"] = self.product.to_dict()
-            
+
         return data

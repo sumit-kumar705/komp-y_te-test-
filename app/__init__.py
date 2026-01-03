@@ -2,18 +2,23 @@ from flask import Flask
 from .extensions import db, migrate, bcrypt, jwt, ma, cors, limiter
 from .routes import register_blueprints
 
+
 def create_app(config_object=None):
     app = Flask(__name__, instance_relative_config=True)
 
     # 1. LOAD CONFIGURATION FIRST
     # ---------------------------
     # Try to use config.py from project root if present
-    app.config.from_object('config.ProductionConfig') if not app.config.get('TESTING') else None
+    (
+        app.config.from_object("config.ProductionConfig")
+        if not app.config.get("TESTING")
+        else None
+    )
     try:
-        app.config.from_pyfile('../config.py', silent=True)
+        app.config.from_pyfile("../config.py", silent=True)
     except Exception:
         try:
-            app.config.from_pyfile('config.py', silent=True)
+            app.config.from_pyfile("config.py", silent=True)
         except Exception:
             pass
 
@@ -46,19 +51,41 @@ def create_app(config_object=None):
     # --------------------------
     try:
         from .errors import register_error_handlers
+
         register_error_handlers(app)
     except Exception:
         pass
 
-    # 6. HEALTH CHECK ROUTE
-    # ---------------------
-    @app.route('/')
+    # 6. HEALTH CHECK ROUTES
+    # ----------------------
+    @app.route("/")
     def health_check():
         return {
-            "status": "success", 
-            "message": "The Backend is Running!", 
-            "service": "Ecommerce API"
+            "status": "success",
+            "message": "The Backend is Running!",
+            "service": "Ecommerce API",
         }, 200
+
+    @app.route("/health")
+    def health():
+        """Railway health check endpoint"""
+        try:
+            # Test database connection
+            db.session.execute(db.text("SELECT 1"))
+            db_status = "connected"
+        except Exception as e:
+            db_status = f"error: {str(e)}"
+
+        return {
+            "status": "healthy",
+            "database": db_status,
+            "service": "Ecommerce API",
+        }, 200
+
+    @app.route("/ping")
+    def ping():
+        """Simple ping endpoint for keep-alive services"""
+        return {"status": "pong"}, 200
 
     # 7. FINAL RETURN
     # ---------------
