@@ -16,21 +16,34 @@ class Config:
     # 2. Database Connection Logic
     # Railway provides MYSQL_URL for MySQL databases
     # Priority: MYSQL_URL (Railway MySQL) -> DATABASE_URL (Railway Postgres) -> DATABASE_URI (Local)
-    _db_url = (
-        os.environ.get("MYSQL_URL")
-        or os.environ.get("DATABASE_URL")
-        or os.environ.get("DATABASE_URI")
-        or os.environ.get("MYSQLHOST")  # Railway also sets MYSQLHOST, MYSQLUSER, etc.
-    )
+    _db_url = None
+
+    # Check for Railway MySQL URL (most common)
+    if os.environ.get("MYSQL_URL"):
+        _db_url = os.environ.get("MYSQL_URL")
+        print("✅ Using MYSQL_URL from Railway")
+
+    # Check for standard DATABASE_URL
+    elif os.environ.get("DATABASE_URL"):
+        _db_url = os.environ.get("DATABASE_URL")
+        print("✅ Using DATABASE_URL")
+
+    # Check for custom DATABASE_URI
+    elif os.environ.get("DATABASE_URI"):
+        _db_url = os.environ.get("DATABASE_URI")
+        print("✅ Using DATABASE_URI")
 
     # If Railway provides individual MySQL credentials, construct the URL
-    if not _db_url and os.environ.get("MYSQLHOST"):
+    elif os.environ.get("MYSQLHOST"):
         mysql_user = os.environ.get("MYSQLUSER", "root")
         mysql_password = os.environ.get("MYSQLPASSWORD", "")
         mysql_host = os.environ.get("MYSQLHOST")
         mysql_port = os.environ.get("MYSQLPORT", "3306")
         mysql_database = os.environ.get("MYSQLDATABASE", "railway")
         _db_url = f"mysql+pymysql://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_database}"
+        print(f"✅ Constructed MySQL URL from Railway environment variables")
+        print(f"   Host: {mysql_host}:{mysql_port}")
+        print(f"   Database: {mysql_database}")
 
     # Fix for Postgres/MySQL prefixes if needed
     if _db_url:
@@ -51,11 +64,12 @@ class Config:
     PROPAGATE_EXCEPTIONS = True
 
     # 4. SQLAlchemy Engine Options
+    # Optimized for Railway deployment
     SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_pre_ping": True,
-        "pool_recycle": 300,
-        "pool_size": 10,
-        "max_overflow": 20,
+        "pool_pre_ping": True,  # Verify connections before using them
+        "pool_recycle": 300,  # Recycle connections after 5 minutes
+        "pool_size": 5,  # Reduced from 10 for Railway free tier
+        "max_overflow": 10,  # Reduced from 20 for Railway free tier
     }
 
     # 5. Email Configuration (Flask-Mail)
@@ -76,7 +90,9 @@ class Config:
     SHIPPING_CHARGE = float(os.environ.get("SHIPPING_CHARGE", 49))
     CONSULTATION_FREE_MINUTES = int(os.environ.get("CONSULTATION_FREE_MINUTES", 20))
     CONSULTATION_PAID_PRICE = float(os.environ.get("CONSULTATION_PAID_PRICE", 250))
-    CONSULTATION_SESSION_MINUTES = int(os.environ.get("CONSULTATION_SESSION_MINUTES", 20))
+    CONSULTATION_SESSION_MINUTES = int(
+        os.environ.get("CONSULTATION_SESSION_MINUTES", 20)
+    )
 
     # 8. Admin WhatsApp for Returns/Refunds
     ADMIN_WHATSAPP = os.environ.get("ADMIN_WHATSAPP", "918149550229")

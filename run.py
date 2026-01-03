@@ -18,12 +18,18 @@ if __name__ == "__main__":
 
     app = create_app()
 
-    # Create all database tables
+    # Database tables should be created via migrations (flask db upgrade)
+    # Not using db.create_all() to avoid conflicts with Alembic migrations
     with app.app_context():
         from app.extensions import db
 
-        db.create_all()
-        print("✓ Database tables created successfully!")
+        # Just verify connection
+        try:
+            db.session.execute(db.text("SELECT 1"))
+            print("✓ Database connection verified!")
+        except Exception as e:
+            print(f"⚠️  Database connection warning: {e}")
+            print("Run 'python -m flask db upgrade' to create tables")
 
     # Run the application
     print("=" * 50)
