@@ -1,76 +1,56 @@
+"""
+Application factory.
+"""
+
 from flask import Flask
-from .extensions import db, migrate, bcrypt, jwt, ma, cors, limiter
+from .extensions import db, migrate, bcrypt, jwt, ma, cors, limiter, mail
 from .routes import register_blueprints
+from .errors import register_error_handlers
 
 
 def create_app(config_object=None):
     app = Flask(__name__, instance_relative_config=True)
 
-    # 1. LOAD CONFIGURATION FIRST
-    # ---------------------------
-    # Try to use config.py from project root if present
-    (
-        app.config.from_object("config.ProductionConfig")
-        if not app.config.get("TESTING")
-        else None
-    )
-    try:
-        app.config.from_pyfile("../config.py", silent=True)
-    except Exception:
-        try:
-            app.config.from_pyfile("config.py", silent=True)
-        except Exception:
-            pass
-
+    # 1. LOAD CONFIGURATION
     if config_object:
         app.config.from_object(config_object)
+    else:
+        from config import get_config
+        app.config.from_object(get_config())
 
     # 2. INITIALIZE EXTENSIONS
-    # ------------------------
     db.init_app(app)
     migrate.init_app(app, db)
     bcrypt.init_app(app)
     jwt.init_app(app)
     ma.init_app(app)
-    cors.init_app(app)
+    cors.init_app(app, origins="*", supports_credentials=True)
     limiter.init_app(app)
+    mail.init_app(app)
 
-    # 3. FORCE LOAD MODELS
-    # --------------------
-    # (Important: Models must be loaded after db.init_app but before routes)
+    # 3. LOAD MODELS
     from app import models
 
-    # 4. REGISTER BLUEPRINTS (ROUTES)
-    # -------------------------------
-    try:
-        register_blueprints(app)
-    except Exception as e:
-        print(f"Error registering blueprints: {e}")
+    # 4. REGISTER BLUEPRINTS
+    register_blueprints(app)
 
     # 5. REGISTER ERROR HANDLERS
-    # --------------------------
-    try:
-        from .errors import register_error_handlers
-
-        register_error_handlers(app)
-    except Exception:
-        pass
+    register_error_handlers(app)
 
     # 6. HEALTH CHECK ROUTES
-    # ----------------------
     @app.route("/")
     def health_check():
         return {
             "status": "success",
-            "message": "The Backend is Running!",
-            "service": "Ecommerce API",
+            "message": "KOMPLYTE Backend is Running!",
+            "service": "KOMPLYTE E-commerce API",
+            "version": "2.0.0",
         }, 200
 
     @app.route("/health")
     def health():
-        """Railway health check endpoint"""
+        """Health check endpoint for Railway."""
         try:
-            # Test database connection
             db.session.execute(db.text("SELECT 1"))
             db_status = "connected"
         except Exception as e:
@@ -79,14 +59,12 @@ def create_app(config_object=None):
         return {
             "status": "healthy",
             "database": db_status,
-            "service": "Ecommerce API",
+            "service": "KOMPLYTE API",
         }, 200
 
     @app.route("/ping")
     def ping():
-        """Simple ping endpoint for keep-alive services"""
+        """Simple ping endpoint."""
         return {"status": "pong"}, 200
 
-    # 7. FINAL RETURN
-    # ---------------
     return app

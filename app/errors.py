@@ -1,17 +1,9 @@
 """
-Application-specific exceptions.
-
-Each exception exposes:
-- message: human-friendly error message
-- status_code: HTTP status code to return
-- code: short machine-friendly error code (useful for clients/logging)
-- payload/details: optional dict with structured data (non-sensitive)
-
-Usage:
-    raise NotFoundError("User not found", details={"user_id": user_id})
+Application-specific exceptions and error handlers.
 """
 
 from typing import Any, Dict, Optional
+from flask import jsonify
 
 
 class AppError(Exception):
@@ -28,13 +20,6 @@ class AppError(Exception):
         code: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None,
     ):
-        """
-        Args:
-            message: human readable message
-            status_code: HTTP status code
-            code: short machine friendly error code (snake_case)
-            details: optional structured payload with extra non-sensitive information
-        """
         super().__init__(message or self.default_message)
         self.message = message or self.default_message
         self.status_code = int(status_code or self.default_status)
@@ -42,7 +27,6 @@ class AppError(Exception):
         self.details = details or {}
 
     def to_dict(self) -> Dict[str, Any]:
-        """Return a JSON-serializable representation of the error."""
         payload = {"status": "error", "message": self.message, "code": self.code}
         if self.details:
             payload["details"] = self.details
@@ -50,9 +34,6 @@ class AppError(Exception):
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} code={self.code} status={self.status_code} message={self.message!r}>"
-
-
-# Common HTTP-like exceptions -------------------------------------------------
 
 
 class BadRequestError(AppError):
@@ -66,7 +47,6 @@ class ValidationError(BadRequestError):
     default_code = "validation_error"
 
     def __init__(self, message: Optional[str] = None, details: Optional[Dict[str, Any]] = None):
-        # Validation errors usually return 400
         super().__init__(message=message, status_code=400, code=self.default_code, details=details)
 
 
@@ -95,7 +75,56 @@ class ConflictError(AppError):
 
 
 class ServiceError(AppError):
-    """Generic service-level error (4xx by default in your original code used 400)."""
     default_message = "Service error"
     default_status = 400
     default_code = "service_error"
+
+
+def register_error_handlers(app):
+    """Register error handlers for the Flask app."""
+    
+    @app.errorhandler(AppError)
+    def handle_app_error(error):
+        response = jsonify(error.to_dict())
+        response.status_code = error.status_code
+        return response
+
+    @app.errorhandler(400)
+    def handle_bad_request(error):
+        return jsonify({
+            "status": "error",
+            "message": "Bad request",
+            "code": "bad_request"
+        }), 400
+
+    @app.errorhandler(401)
+    def handle_unauthorized(error):
+        return jsonify({
+            "status": "error",
+            "message": "Unauthorized",
+            "code": "unauthorized"
+        }), 401
+
+    @app.errorhandler(403)
+    def handle_forbidden(error):
+        return jsonify({
+            "status": "error",
+            "message": "Forbidden",
+            "code": "forbidden"
+        }), 403
+
+    @app.errorhandler(404)
+    def handle_not_found(error):
+        return jsonify({
+            "status": "error",
+            "message": "Not found",
+            "code": "not_found"
+        }), 404
+
+    @app.errorhandler(500)
+    def handle_internal_error(error):
+        return jsonify({
+            "status": "error",
+            "message": "Internal server error",
+            "code": "internal_error"
+        }), 500

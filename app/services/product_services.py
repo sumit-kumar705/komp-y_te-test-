@@ -1,35 +1,67 @@
+"""
+Product services.
+"""
+
 from app.extensions import db
 from app.models.product import Product
 from app.utils.response import format_model
 
 
-# -----------------------------
-# GET ALL PRODUCTS
-# -----------------------------
-def get_products():
-    products = Product.query.all()
+def get_products(category_id: int = None, active_only: bool = True) -> list:
+    """Get all products with optional filters."""
+    query = Product.query
+    
+    if active_only:
+        query = query.filter_by(is_active=True)
+    
+    if category_id:
+        query = query.filter_by(category_id=category_id)
+    
+    products = query.order_by(Product.created_at.desc()).all()
     return [format_model(p) for p in products]
 
 
-# -----------------------------
-# GET PRODUCT BY ID
-# -----------------------------
-def get_product_by_id(product_id):
-    product = Product.query.get(product_id)
+def get_featured_products() -> list:
+    """Get featured products."""
+    products = Product.query.filter_by(is_active=True, is_featured=True).all()
+    return [format_model(p) for p in products]
+
+
+def search_products(query: str) -> list:
+    """Search products by name or description."""
+    search_term = f"%{query}%"
+    products = Product.query.filter(
+        Product.is_active == True,
+        (Product.name.ilike(search_term) | Product.description.ilike(search_term))
+    ).all()
+    return [format_model(p) for p in products]
+
+
+def get_product_by_id(product_id: int) -> dict:
+    """Get product by ID."""
+    product = db.session.get(Product, product_id)
     return format_model(product) if product else None
 
 
-# -----------------------------
-# CREATE PRODUCT
-# -----------------------------
-def create_product(data):
+def create_product(data: dict) -> dict:
+    """Create a new product."""
     try:
         product = Product(
             name=data.get("name"),
             description=data.get("description"),
             price=data.get("price"),
             stock=data.get("stock", 0),
-            category_id=data.get("category_id")
+            category_id=data.get("category_id"),
+            main_image=data.get("main_image"),
+            images=data.get("images"),
+            ingredients=data.get("ingredients"),
+            benefits=data.get("benefits"),
+            nutrition_info=data.get("nutrition_info"),
+            usage_instructions=data.get("usage_instructions"),
+            weight=data.get("weight"),
+            sku=data.get("sku"),
+            is_active=data.get("is_active", True),
+            is_featured=data.get("is_featured", False),
         )
         db.session.add(product)
         db.session.commit()
@@ -40,25 +72,24 @@ def create_product(data):
         raise e
 
 
-# -----------------------------
-# UPDATE PRODUCT
-# -----------------------------
-def update_product(product_id, data):
-    product = Product.query.get(product_id)
+def update_product(product_id: int, data: dict) -> dict:
+    """Update a product."""
+    product = db.session.get(Product, product_id)
     if not product:
         return None
 
     try:
-        if "name" in data:
-            product.name = data["name"]
-        if "description" in data:
-            product.description = data["description"]
-        if "price" in data:
-            product.price = data["price"]
-        if "stock" in data:
-            product.stock = data["stock"]
-        if "category_id" in data:
-            product.category_id = data["category_id"]
+        # Update all provided fields
+        updatable_fields = [
+            "name", "description", "price", "stock", "category_id",
+            "main_image", "images", "ingredients", "benefits",
+            "nutrition_info", "usage_instructions", "weight", "sku",
+            "is_active", "is_featured"
+        ]
+        
+        for field in updatable_fields:
+            if field in data:
+                setattr(product, field, data[field])
 
         db.session.commit()
         return format_model(product)
@@ -68,11 +99,9 @@ def update_product(product_id, data):
         raise e
 
 
-# -----------------------------
-# DELETE PRODUCT
-# -----------------------------
-def delete_product(product_id):
-    product = Product.query.get(product_id)
+def delete_product(product_id: int) -> bool:
+    """Delete a product."""
+    product = db.session.get(Product, product_id)
     if not product:
         return False
 

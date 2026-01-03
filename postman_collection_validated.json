@@ -1,0 +1,558 @@
+{
+  "info": {
+    "name": "Komplyte Ecommerce API - VALIDATED",
+    "description": "Complete & Validated API collection for Komplyte backend - All endpoints tested with https://web-production-be9c3.up.railway.app",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://web-production-be9c3.up.railway.app",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health & Status",
+      "item": [
+        {
+          "name": "Root Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Database Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ping (Keep-Alive)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ping",
+              "host": ["{{base_url}}"],
+              "path": ["ping"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.id) {",
+                  "    pm.collectionVariables.set('user_id', response.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"testuser@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.data && response.data.access_token) {",
+                  "    pm.collectionVariables.set('access_token', response.data.access_token);",
+                  "    console.log('✅ Token saved:', response.data.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User (/me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "me"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Products",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/product/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "product", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/product/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "product", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product (Kombucha)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Instant Kombucha Powder\",\n  \"description\": \"Premium gut health supplement with beneficial bacteria cultures\",\n  \"price\": 29.99,\n  \"stock\": 100,\n  \"category_id\": 1,\n  \"main_image\": \"https://example.com/kombucha.jpg\",\n  \"ingredients\": \"Organic tea extract, beneficial bacteria cultures, natural flavors\",\n  \"benefits\": \"Supports gut diversity, anti-inflammatory properties, stress reduction with tea polyphenols\",\n  \"nutrition_info\": \"Per serving: Probiotics 10 billion CFU, Tea polyphenols 200mg\",\n  \"usage_instructions\": \"Mix 1 scoop with 200ml water, consume daily for best results\",\n  \"weight\": \"300g\",\n  \"sku\": \"KOMP-KOMBUCHA-001\",\n  \"is_active\": true,\n  \"is_featured\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/product/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "product", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product (Whey Kefir)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Instant Whey Kefir Powder\",\n  \"description\": \"Electrolyte-rich probiotic supplement for active lifestyles\",\n  \"price\": 34.99,\n  \"stock\": 75,\n  \"category_id\": 1,\n  \"main_image\": \"https://example.com/kefir.jpg\",\n  \"ingredients\": \"Mineral-rich whey, kefir cultures, natural electrolytes\",\n  \"benefits\": \"Endurance electrolytes, calms digestive system, increased antioxidant defense, beneficial probiotics\",\n  \"nutrition_info\": \"Per serving: Probiotics 12 billion CFU, Electrolytes 400mg, Antioxidants\",\n  \"usage_instructions\": \"Mix 1-2 scoops with water post-workout or daily\",\n  \"weight\": \"450g\",\n  \"sku\": \"KOMP-KEFIR-001\",\n  \"is_active\": true,\n  \"is_featured\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/product/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "product", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 27.99,\n  \"stock\": 150,\n  \"is_featured\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/product/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "product", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/product/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "product", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Categories",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/category",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "category"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Category (Probiotics)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Probiotics & Gut Health\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/category",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "category"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Wellness Supplements\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/category/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "category", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/category/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "category", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Shopping Cart",
+      "item": [
+        {
+          "name": "Get User Cart",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/cart/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "cart", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": 1,\n  \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/cart/add",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "cart", "add"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remove from Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cart_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/cart/remove",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "cart", "remove"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": {{user_id}},\n  \"items\": [\n    {\n      \"product_id\": 1,\n      \"quantity\": 2\n    }\n  ],\n  \"total_amount\": 59.98,\n  \"shipping_address_line1\": \"123 Main Street\",\n  \"shipping_city\": \"Mumbai\",\n  \"shipping_state\": \"Maharashtra\",\n  \"shipping_postal_code\": \"400001\",\n  \"shipping_country\": \"India\",\n  \"customer_name\": \"Test User\",\n  \"customer_email\": \"testuser@example.com\",\n  \"customer_phone\": \"+919876543210\",\n  \"notes\": \"Please deliver after 5 PM\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/order/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "order", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/order/user/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "order", "user", "{{user_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Users",
+      "item": [
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/user/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "user", "{{user_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8. Payment (Razorpay)",
+      "item": [
+        {
+          "name": "Create Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": 1,\n  \"amount\": 59.98,\n  \"currency\": \"INR\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment", ""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpay_order_id\": \"order_xxx\",\n  \"razorpay_payment_id\": \"pay_xxx\",\n  \"razorpay_signature\": \"signature_xxx\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment/verify",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment", "verify"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "9. Admin",
+      "item": [
+        {
+          "name": "Get All Users (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "users"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Orders (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "orders"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

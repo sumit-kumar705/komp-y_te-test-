@@ -14,6 +14,7 @@ Flask-Cors==4.0.0
 Flask-JWT-Extended==4.4.4
 Flask-Limiter==4.0.0
 flask-marshmallow==0.15.0
+Flask-Mail==0.10.0
 Flask-Migrate==4.1.0
 Flask-SQLAlchemy==3.0.3
 greenlet==3.2.4
@@ -36,6 +37,7 @@ Pygments==2.19.2
 PyJWT==2.10.1
 PyMySQL==1.0.3
 python-dotenv==1.0.0
+razorpay==1.4.1
 requests==2.31.0
 rich==14.2.0
 SQLAlchemy==2.0.44
