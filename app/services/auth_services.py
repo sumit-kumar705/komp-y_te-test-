@@ -4,12 +4,12 @@ from app.models.user import User
 from app.utils.jwt_utils import generate_access_token
 
 
-def create_user(username, email, password):
+def create_user(name, email, password):
     if User.query.filter(User.email == email).first():
         raise ValueError("User with this email already exists")
 
     password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
-    user = User(username=username, email=email, password_hash=password_hash)
+    user = User(username=name, email=email, password_hash=password_hash)
 
     db.session.add(user)
     try:
