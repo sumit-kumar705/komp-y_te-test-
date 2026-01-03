@@ -18,8 +18,13 @@ def register():
     if not email or not password or not name:
         return error_response("Name, Email and password are required", 400)
 
-    user = create_user(name, email, password)
-    return success_response({"id": user.id, "name": user.username ,"email": user.email}, 201)
+    try:
+        user = create_user(name, email, password)
+        return success_response({"id": user.id, "name": user.username, "email": user.email}, 201)
+    except ValueError as e:
+        return error_response(str(e), 400)
+    except Exception as e:
+        return error_response(f"Registration failed: {str(e)}", 500)
 
 
 
