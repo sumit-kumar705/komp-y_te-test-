@@ -1,180 +1,172 @@
 #!/usr/bin/env python
 """
-Verify Railway MySQL deployment readiness.
-Run this before deploying to Railway.
+Final pre-deployment verification for Railway.
+Run this before pushing to GitHub.
 """
+
 import os
 import sys
 
 
-def check_file_exists(filepath, description):
+def check_file_exists(filepath, required=True):
     """Check if a file exists."""
-    if os.path.exists(filepath):
-        print(f"✅ {description}: {filepath}")
-        return True
-    else:
-        print(f"❌ MISSING {description}: {filepath}")
-        return False
+    exists = os.path.exists(filepath)
+    status = "✅" if exists else ("❌" if required else "⚠️")
+    print(f"{status} {filepath}: {'EXISTS' if exists else 'MISSING'}")
+    return exists
 
 
-def check_file_content(filepath, should_not_contain, description):
-    """Check if file does NOT contain certain strings."""
+def check_file_not_exists(filepath, description):
+    """Check if a file does NOT exist (should be deleted)."""
+    exists = os.path.exists(filepath)
+    status = "✅" if not exists else "❌"
+    print(f"{status} {description}: {'DELETED' if not exists else 'STILL EXISTS - SHOULD BE DELETED!'}")
+    return not exists
+
+
+def check_file_content(filepath, should_contain=None, should_not_contain=None):
+    """Check file content."""
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
-            for term in should_not_contain:
-                if term.lower() in content.lower():
-                    print(f"❌ {description} contains '{term}': {filepath}")
-                    return False
-        print(f"✅ {description} is clean: {filepath}")
+            
+            if should_contain:
+                for term in should_contain:
+                    if term not in content:
+                        print(f"  ❌ Missing required: '{term}'")
+                        return False
+                print(f"  ✅ Contains all required terms")
+            
+            if should_not_contain:
+                for term in should_not_contain:
+                    if term.lower() in content.lower():
+                        print(f"  ❌ Contains forbidden: '{term}'")
+                        return False
+                print(f"  ✅ Clean (no forbidden terms)")
+            
         return True
     except Exception as e:
-        print(f"⚠️  Could not read {filepath}: {e}")
-        return False
-
-
-def check_file_has_content(filepath, should_contain, description):
-    """Check if file contains certain strings."""
-    try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            content = f.read()
-            for term in should_contain:
-                if term not in content:
-                    print(f"❌ {description} missing '{term}': {filepath}")
-                    return False
-        print(f"✅ {description} has required content: {filepath}")
-        return True
-    except Exception as e:
-        print(f"⚠️  Could not read {filepath}: {e}")
+        print(f"  ⚠️  Error reading file: {e}")
         return False
 
 
 def main():
-    print("=" * 70)
-    print("🔍 RAILWAY MYSQL DEPLOYMENT VERIFICATION")
-    print("=" * 70)
+    print("=" * 80)
+    print("🔍 RAILWAY DEPLOYMENT VERIFICATION - FINAL CHECK")
+    print("=" * 80)
     print()
-
+    
     checks_passed = 0
     checks_total = 0
-
-    # Check 1: Required files exist
-    print("📦 Checking Required Files...")
-    files_to_check = [
-        ("requirements.txt", "Requirements file"),
-        ("config.py", "Configuration file"),
-        ("nixpacks.toml", "Nixpacks configuration"),
-        ("railway.json", "Railway configuration"),
-        ("wsgi.py", "WSGI entry point"),
-        ("run.py", "Flask runner"),
+    
+    # 1. Check required files exist
+    print("📦 REQUIRED FILES:")
+    required_files = [
+        "requirements.txt",
+        "runtime.txt",
+        "Procfile",
+        "railway.json",
+        "wsgi.py",
+        "run.py",
+        "config.py",
+        "init_db.py",
+        "app/__init__.py",
+        "app/extensions.py",
     ]
     
-    for filepath, desc in files_to_check:
+    for filepath in required_files:
         checks_total += 1
-        if check_file_exists(filepath, desc):
+        if check_file_exists(filepath, required=True):
             checks_passed += 1
     
     print()
-
-    # Check 2: No PostgreSQL in requirements.txt
-    print("🔍 Checking for PostgreSQL Dependencies...")
+    
+    # 2. Check nixpacks.toml is DELETED
+    print("🗑️  DELETED FILES (should not exist):")
     checks_total += 1
-    if check_file_content(
-        "requirements.txt",
-        ["psycopg2", "postgres"],
-        "requirements.txt"
-    ):
+    if check_file_not_exists("nixpacks.toml", "nixpacks.toml"):
+        checks_passed += 1
+    print()
+    
+    # 3. Check requirements.txt
+    print("📋 REQUIREMENTS.TXT:")
+    checks_total += 2
+    print("  Checking for PostgreSQL dependencies...")
+    if check_file_content("requirements.txt", should_not_contain=["psycopg2", "psycopg"]):
+        checks_passed += 1
+    
+    print("  Checking for MySQL dependencies...")
+    if check_file_content("requirements.txt", should_contain=["PyMySQL"]):
         checks_passed += 1
     
     print()
-
-    # Check 3: PyMySQL in requirements.txt
-    print("🔍 Checking for MySQL Dependencies...")
+    
+    # 4. Check Procfile
+    print("⚙️  PROCFILE:")
     checks_total += 1
-    if check_file_has_content(
-        "requirements.txt",
-        ["PyMySQL"],
-        "requirements.txt"
-    ):
+    print("  Checking deployment command...")
+    if check_file_content("Procfile", should_contain=["gunicorn", "wsgi:app"]):
         checks_passed += 1
     
     print()
-
-    # Check 4: nixpacks.toml configured correctly
-    print("🔍 Checking nixpacks.toml configuration...")
-    checks_total += 1
-    if check_file_has_content(
-        "nixpacks.toml",
-        ["python39", "gcc"],
-        "nixpacks.toml"
-    ):
-        checks_passed += 1
     
+    # 5. Check railway.json
+    print("🚂 RAILWAY.JSON:")
     checks_total += 1
-    if check_file_content(
-        "nixpacks.toml",
-        ["postgresql"],
-        "nixpacks.toml"
-    ):
+    print("  Checking configuration...")
+    if check_file_content("railway.json", should_contain=["startCommand", "gunicorn"]):
         checks_passed += 1
     
     print()
-
-    # Check 5: Config.py has MySQL support
-    print("🔍 Checking config.py for MySQL support...")
-    checks_total += 1
-    if check_file_has_content(
-        "config.py",
-        ["MYSQL_URL", "pymysql"],
-        "config.py"
-    ):
+    
+    # 6. Check config.py
+    print("⚙️  CONFIG.PY:")
+    checks_total += 2
+    print("  Checking for MySQL support...")
+    if check_file_content("config.py", should_contain=["MYSQL_URL", "pymysql"]):
+        checks_passed += 1
+        
+    print("  Checking no PostgreSQL references...")
+    if check_file_content("config.py", should_not_contain=["psycopg", "postgresql://"]):
         checks_passed += 1
     
     print()
-
-    # Check 6: .env is gitignored
-    print("🔍 Checking .gitignore...")
+    
+    # 7. Check Python syntax
+    print("🐍 PYTHON SYNTAX:")
     checks_total += 1
-    if os.path.exists(".gitignore"):
-        with open(".gitignore", 'r') as f:
-            gitignore_content = f.read()
-            if ".env" in gitignore_content:
-                print("✅ .env is in .gitignore")
-                checks_passed += 1
-            else:
-                print("⚠️  .env should be in .gitignore")
-    else:
-        print("⚠️  .gitignore not found")
+    try:
+        import py_compile
+        py_compile.compile("wsgi.py", doraise=True)
+        py_compile.compile("init_db.py", doraise=True)
+        py_compile.compile("app/__init__.py", doraise=True)
+        print("  ✅ All Python files compile successfully")
+        checks_passed += 1
+    except Exception as e:
+        print(f"  ❌ Python syntax error: {e}")
     
     print()
-
+    
     # Summary
-    print("=" * 70)
-    print(f"📊 VERIFICATION SUMMARY: {checks_passed}/{checks_total} checks passed")
-    print("=" * 70)
+    print("=" * 80)
+    print(f"📊 FINAL SCORE: {checks_passed}/{checks_total} checks passed")
+    print("=" * 80)
     print()
-
+    
     if checks_passed == checks_total:
-        print("🎉 ALL CHECKS PASSED! Your code is ready for Railway deployment.")
+        print("🎉 PERFECT! Your code is 100% ready for Railway deployment!")
         print()
-        print("Next steps:")
-        print("1. Commit and push your changes:")
-        print("   git add .")
-        print("   git commit -m 'Convert to MySQL for Railway deployment'")
-        print("   git push origin main")
+        print("✅ Next steps:")
+        print("   1. git add .")
+        print("   2. git commit -m 'Fix Railway build - Remove nixpacks, simplify deployment'")
+        print("   3. git push origin main")
+        print("   4. Deploy to Railway!")
         print()
-        print("2. Deploy to Railway:")
-        print("   - Create project from GitHub repo")
-        print("   - Add MySQL database")
-        print("   - Set environment variables")
-        print()
-        print("📖 See DEPLOYMENT_CHECKLIST.md for detailed instructions")
+        print("📖 See DEPLOY_RAILWAY_SIMPLE.md for detailed deployment instructions")
         return 0
     else:
-        print("⚠️  SOME CHECKS FAILED! Please fix the issues above.")
-        print()
-        if not os.path.exists("nixpacks.toml"):
-            print("💡 TIP: nixpacks.toml is missing. This file prevents PostgreSQL installation.")
+        print("⚠️  SOME CHECKS FAILED!")
+        print("Please fix the issues above before deploying to Railway.")
         return 1
 
 
