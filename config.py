@@ -15,7 +15,7 @@ class Config:
 
     # 2. Database Connection Logic
     # Railway provides MYSQL_URL for MySQL databases
-    # Priority: MYSQL_URL (Railway MySQL) -> DATABASE_URL (Railway Postgres) -> DATABASE_URI (Local)
+    # Priority: MYSQL_URL (Railway MySQL) -> DATABASE_URL -> DATABASE_URI (Local)
     _db_url = None
 
     # Check for Railway MySQL URL (most common)
@@ -45,10 +45,8 @@ class Config:
         print(f"   Host: {mysql_host}:{mysql_port}")
         print(f"   Database: {mysql_database}")
 
-    # Fix for Postgres/MySQL prefixes if needed
+    # Fix for MySQL prefix if needed
     if _db_url:
-        if _db_url.startswith("postgres://"):
-            _db_url = _db_url.replace("postgres://", "postgresql://", 1)
         if _db_url.startswith("mysql://"):
             _db_url = _db_url.replace("mysql://", "mysql+pymysql://", 1)
 
